@@ -9,15 +9,17 @@
 
 #define MAXDELTA 1
 #define MINDELTA -1
-#define DIMx 10
-#define DIMy 8
+#define DIMx 8 /*CAN'T BE 1*/
+#define DIMy 8 /*CAN'T BE 1*/
 
-#define MAXTIME 10000
+#define MAXTIME 100
+#define LOOPCACHE 4
 
 #define true 1
 #define false 0
 
 int main_table[DIMx + 2][DIMy + 2];
+char compressedFooter[16], prevTable [LOOPCACHE] [DIMx*DIMy*4 + 1 + 16];
 
 int importfirsttable (){
     int xi,yi;
@@ -71,7 +73,8 @@ int tablecompression(char input[]){
     int i;
     int val,rep=0,check=true;
     int last_pos=0;
-    char string[DIMx*DIMy*4 + 1];
+    char string[DIMx*DIMy*4 + 1 + 16];
+
     val=main_table[1][1];
     for (i=0;i<(DIMx*DIMy*4 + 1);i++){
         sprintf(&string[i],"\0");
@@ -94,20 +97,30 @@ int tablecompression(char input[]){
     if (check==true){
         sprintf(&string[last_pos],"%dx%d:",val,rep);
     }
+    strcat(string,compressedFooter);
     strcpy(input,string);
     return 0;
 }
 
 void allzero (char output[]){
     sprintf(output,"0x%d:",(DIMx*DIMy));
+    strcat(output,compressedFooter);
 }
 
-int checkInfinity (char input1[], char input2[]){
+int checkInfinityLoop(char *input1, char *input2){
     if (strcmp(input1,input2)==0){
-        printf("Possible Loop, stopping the program");
+        printf("Short Loop, stopping the program");
         return 1;
     }
     return 0;
+}
+int checkLongLoop(char *input1){
+    int i;
+    for (i=1;i<LOOPCACHE;i++){
+        if (strcmp(input1,prevTable[i])==0){
+            return 1;
+        }
+    }
 }
 
 
@@ -116,8 +129,10 @@ int main() {
     int generation=0,x,y;
     int deltax, deltay;
     int neighs;
+    int tab;
     char decision;
-    char compressedTable [DIMx*DIMy*4 + 1], allzeroes[DIMx*DIMy*4 + 1], prevTable [DIMx*DIMy*4 + 1];
+    char compressedTable [DIMx*DIMy*4 + 1 + 16], allzeroes[DIMx*DIMy*4 + 1 + 16];
+    sprintf(compressedFooter,"(w%dh%d)",DIMx,DIMy);
     allzero(allzeroes);
     //table decision
     printf("write L to load a preset table, G to generate one: ");
@@ -178,7 +193,10 @@ int main() {
                     }
                 }
             }
-            strcpy(prevTable,compressedTable);
+            for (tab=LOOPCACHE-1;tab>0;tab--){
+               strcpy(prevTable[tab],prevTable[tab-1]);
+            }
+            strcpy(prevTable[0],compressedTable);
             tablecompression(compressedTable);
             printf("\nGeneration %d\n", generation);
             for (x = 0; x < DIMx + 2; x++) {
@@ -189,8 +207,14 @@ int main() {
                 printf("\n");
             }
             printf("%s\n", compressedTable);
-            if (generation!=0 && checkInfinity(compressedTable,prevTable)!=0){
+            if (generation!=0 && checkInfinityLoop(compressedTable, prevTable[0])!=0){
                 return 1;
+            } else if ( generation>=LOOPCACHE &&
+                    (generation%LOOPCACHE)==0) {
+                if ( checkLongLoop(compressedTable)!=0) { //this ain't WORKING
+                    printf("Long Loop, stopping the program");
+                    return 1;
+                }
             }
 
         }
