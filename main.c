@@ -9,11 +9,11 @@
 
 #define MAXDELTA 1
 #define MINDELTA -1
-#define DIMx 8 /*CAN'T BE 1*/
-#define DIMy 8 /*CAN'T BE 1*/
+#define DIMx 16 /*CAN'T BE 1*/
+#define DIMy 16 /*CAN'T BE 1*/
 
-#define MAXTIME 100
-#define LOOPCACHE 4
+#define MAXTIME 1000
+#define LOOPCACHE 16
 
 #define true 1
 #define false 0
@@ -121,6 +121,7 @@ int checkLongLoop(char *input1){
             return 1;
         }
     }
+    return 0;
 }
 
 
@@ -160,6 +161,7 @@ int main() {
             if(strcmp(compressedTable,allzeroes)==0){
                 return 1;
             }
+            /*system("cls");*/
             for (x = 1; x <= DIMx; x++) {
                 for (y = 1; y <= DIMy; y++) {
                     neighs = 0;
@@ -211,7 +213,7 @@ int main() {
                 return 1;
             } else if ( generation>=LOOPCACHE &&
                     (generation%LOOPCACHE)==0) {
-                if ( checkLongLoop(compressedTable)!=0) { //this ain't WORKING
+                if ( checkLongLoop(compressedTable)!=0) {
                     printf("Long Loop, stopping the program");
                     return 1;
                 }
